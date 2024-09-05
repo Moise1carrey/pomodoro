@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporizador Pomodoro</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .settings {
+            margin-bottom: 20px;
+        }
+
+        .settings div {
+            margin: 10px 0;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #666;
+            transition: color 0.3s; /* Transición suave para el cambio de color */
+        }
+
+        .active-label {
+            color: #007bff; /* Azul cuando está activo */
+        }
+
+        input {
+            font-size: 16px;
+            width: 80px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #007bff;
+        }
+
+        .timer {
+            font-size: 48px;
+            margin: 20px 0;
+            color: #333;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            padding: 20px;
+            display: inline-block;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            background-color: #004094;
+        }
+
+        .session-count {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        #status {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Temporizador Pomodoro</h1>
+        <div class="settings">
+            <div>
+                <label id="work-label" for="work-duration">Pomodoro (min):</label>
+                <input id="work-duration" type="number" value="25" min="1">
+            </div>
+            <div>
+                <label id="break-label" for="break-duration">Descanso (min):</label>
+                <input id="break-duration" type="number" value="5" min="1">
+            </div>
+        </div>
+        <div id="timer" class="timer">25:00</div>
+        <div class="controls">
+            <button onclick="startTimer()">Iniciar</button>
+            <button onclick="resetTimer()">Reiniciar</button>
+            <button onclick="toggleSession()">Cambiar</button>
+        </div>
+        <div id="session-count" class="session-count">Pomodoros completados: 0</div>
+        <div id="status">Detenido</div>
+    </div>
+
+    <!-- Archivos de audio -->
+    <audio id="work-end-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    <audio id="break-end-sound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
+
+    <script>
+        let timer;
+        let isRunning = false;
+        let timeLeft;
+        let isWorkSession = true;
+        let pomodoroCount = 0;  // Contador de Pomodoros
+
+        // Obtener los sonidos
+        const workEndSound = document.getElementById("work-end-sound");
+        const breakEndSound = document.getElementById("break-end-sound");
+
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                const workDuration = parseInt(document.getElementById("work-duration").value) * 60;
+                const breakDuration = parseInt(document.getElementById("break-duration").value) * 60;
+
+                timeLeft = isWorkSession ? workDuration : breakDuration;
+                updateTimerDisplay();
+
+                document.getElementById("status").textContent = "En marcha";  // Cambiar el estado a "En marcha"
+
+                // Cambiar el color del label correspondiente
+                if (isWorkSession) {
+                    document.getElementById("work-label").classList.add("active-label");
+                    document.getElementById("break-label").classList.remove("active-label");
+                } else {
+                    document.getElementById("work-label").classList.remove("active-label");
+                    document.getElementById("break-label").classList.add("active-label");
+                }
+
+                timer = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        isRunning = false;
+
+                        // Reproducir el sonido según la fase que terminó
+                        if (isWorkSession) {
+                            workEndSound.play();
+                            // Incrementar el contador de Pomodoros solo al finalizar un período de trabajo
+                            pomodoroCount++;
+                            document.getElementById("session-count").textContent = `Pomodoros completados: ${pomodoroCount}`;
+                        } else {
+                            breakEndSound.play();
+                        }
+
+                        // Cambiar la fase (Pomodoro o Descanso)
+                        isWorkSession = !isWorkSession;
+                        alert(isWorkSession ? "¡Tiempo de trabajar!" : "¡Tiempo de descansar!");
+                        
+                        // Reiniciar el temporizador automáticamente en la nueva fase
+                        startTimer();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            isRunning = false;
+            isWorkSession = true;
+            const workDuration = parseInt(document.getElementById("work-duration").value) * 60;
+            timeLeft = workDuration;
+            updateTimerDisplay();
+
+            document.getElementById("status").textContent = "Detenido";  // Cambiar el estado a "Detenido"
+
+            // Restablecer los colores de los labels
+            document.getElementById("work-label").classList.remove("active-label");
+            document.getElementById("break-label").classList.remove("active-label");
+        }
+
+        function toggleSession() {
+            clearInterval(timer);
+            isRunning = false;
+            isWorkSession = !isWorkSession;
+            const workDuration = parseInt(document.getElementById("work-duration").value) * 60;
+            const breakDuration = parseInt(document.getElementById("break-duration").value) * 60;
+            timeLeft = isWorkSession ? workDuration : breakDuration;
+
+            alert(isWorkSession ? "Cambiando a Pomodoro" : "Cambiando a Descanso");
+
+            updateTimerDisplay();
+            startTimer();  // Inicia el temporizador en la nueva fase
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById("timer").textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        // Prevenir que el temporizador se reinicie al cambiar la duración cuando está en marcha
+        document.getElementById("work-duration").addEventListener("input", () => {
+            if (!isRunning) {
+                resetTimer();
+            }
+        });
+
+        document.getElementById("break-duration").addEventListener("input", () => {
+            if (!isRunning) {
+                resetTimer();
+            }
+        });
+    </script>
+</body>
+</html>
